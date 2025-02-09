@@ -1,0 +1,12 @@
+[workspace]
+members=[ "llvm-codegen-utils-core","llvm-codegen-utils-maintenance", "llvm-codegen-utils-version-macros"]
+resolver="2"
+[workspace.dependencies]
+# GEN LLVM
+llvm-sys-190={version="191",package="llvm-sys"}
+llvm-sys-180={version="181",package="llvm-sys"}
+# RESUME
+
+arena-traits="0.2.0"
+cfg-traits="v0.3.0-alpha.0"
+ssa-traits="v0.3.0-alpha.0"

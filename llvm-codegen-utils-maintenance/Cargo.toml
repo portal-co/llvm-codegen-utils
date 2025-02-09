@@ -1,0 +1,13 @@
+[package]
+name = "llvm-codegen-utils-maintenance"
+version = "0.1.0"
+edition = "2021"
+publicsh = false
+
+[dependencies]
+itertools = "0.13.0"
+prettyplease = "0.2.25"
+proc-macro2 = "1.0.89"
+quasiquote = "0.1.1"
+quote = "1.0.37"
+syn = "2.0.87"

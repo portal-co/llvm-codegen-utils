@@ -1,0 +1,10 @@
+[package]
+name = "px-llvm-codegen-utils-version-macros"
+# GEN VERSION
+version = "0.1.0"
+# RESUME
+edition = "2021"
+license = "CC0-1.0"
+description = "Version macros for LLVM codegen utilities"
+
+[dependencies]

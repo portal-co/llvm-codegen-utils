@@ -1,0 +1,25 @@
+[package]
+name = "px-llvm-codegen-utils-core"
+# GEN VERSION
+version = "0.1.0"
+# RESUME
+edition = "2021"
+license = "CC0-1.0"
+description = "Core traits for LLVM codegen utilities"
+
+[dependencies]
+# GEN LL_DEPS
+llvm-codegen-utils-version-macros = { version = "0.1.0", path = "../llvm-codegen-utils-version-macros", package = "px-llvm-codegen-utils-version-macros" }
+# RESUME
+nonempty = "0.10.0"
+
+# GEN LLVM
+llvm-sys-190={workspace=true,optional=true}
+llvm-sys-180={workspace=true,optional=true}
+# RESUME
+
+[features]
+# GEN LL_FEATURES
+llvm-sys-190=["dep:llvm-sys-190"]
+llvm-sys-180=["dep:llvm-sys-180"]
+# RESUME
