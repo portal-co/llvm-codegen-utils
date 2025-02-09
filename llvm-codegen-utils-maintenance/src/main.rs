@@ -7,7 +7,12 @@ use quote::format_ident;
 fn main() -> std::io::Result<()> {
     let mut args = std::env::args();
     args.next();
-    let root = args.next().unwrap();
+    let mut root = args.next().unwrap();
+    let mut publish = false;
+    if root == "publish"{
+        publish = true;
+        root = args.next().unwrap();
+    }
     let s = std::fs::read_to_string(format!("{root}/Cargo.toml"))?;
     let mut t = String::default();
     let mut generating = false;
@@ -62,6 +67,35 @@ fn main() -> std::io::Result<()> {
         format!("{root}/llvm-codegen-utils-version-macros/src/macros.rs"),
         prettyplease::unparse(&syn::parse2(contents).unwrap()),
     )?;
+    if publish{
+        if !std::process::Command::new("git").arg("add").arg("-A").current_dir(&root).spawn()?.wait()?.success(){
+            panic!("command failed")
+        };
+        std::process::Command::new("git").arg("commit").arg("-m").arg("publish cleanup").current_dir(&root).spawn()?.wait()?;
+        for f in std::fs::read_dir(&root)? {
+            let Ok(f) = f else {
+                continue;
+            };
+            if f.file_name().as_encoded_bytes().iter().all(|a| *a == b'.') {
+                continue;
+            }
+            if !f.file_type()?.is_dir(){
+                continue;
+            }
+            if !f.path().join("Cargo.toml").exists(){
+                continue;
+            }
+            match f.file_name().to_str(){
+                Some("llvm-codegen-utils-maintenance") => continue,
+                _ => {
+
+                }
+            };
+            if !std::process::Command::new("cargo").arg("publish").current_dir(f.path()).spawn()?.wait()?.success(){
+                panic!("publish of {} failed",f.file_name().to_string_lossy())
+            }
+        }
+    }
     Ok(())
 }
 static LLVMS: LazyLock<Vec<(&'static str, &'static str)>> =
