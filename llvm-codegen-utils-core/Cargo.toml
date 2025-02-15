@@ -17,7 +17,6 @@ paste = "1.0.15"
 # GEN LLVM
 llvm-sys-190={workspace=true,optional=true}
 llvm-sys-180={workspace=true,optional=true}
-
 # RESUME
 typenum = "1.17.0"
 [features]
