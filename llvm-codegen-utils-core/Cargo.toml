@@ -12,12 +12,14 @@ description = "Core traits for LLVM codegen utilities"
 llvm-codegen-utils-version-macros = { version = "0.1.0", path = "../llvm-codegen-utils-version-macros", package = "px-llvm-codegen-utils-version-macros" }
 # RESUME
 nonempty = "0.10.0"
+paste = "1.0.15"
 
 # GEN LLVM
 llvm-sys-190={workspace=true,optional=true}
 llvm-sys-180={workspace=true,optional=true}
-# RESUME
 
+# RESUME
+typenum = "1.17.0"
 [features]
 # GEN LL_FEATURES
 llvm-sys-190=["dep:llvm-sys-190"]
