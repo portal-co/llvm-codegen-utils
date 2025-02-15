@@ -106,7 +106,13 @@ macro_rules! insts {
 
     };
 }
-
+#[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[non_exhaustive]
+pub enum ICmp {
+    Eq,
+    Lt,
+    Lts,
+}
 macro_rules! default_insts {
     ($l2:lifetime @ $($llvm:ident)?) => {
         insts!(($l2) @ {
@@ -122,6 +128,7 @@ macro_rules! default_insts {
       [Or (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
      [ Sub (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
      [Xor (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
+         [ICmp (('op) @ op: crate::ICmp as |a|a.into(),('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
 
      [ Br (('dest) @ dest: Self::BB<'dest,'a,'a> as |x|x.ptr())],
      [CondBr (('cond) @ r#if: <Self::ValKind<'a,'a> as ValueKind>::Val<'cond,Normal> as |x|x.ptr(), ('then) @ then: Self::BB<'then,'a,'a> as |x|x.ptr(),('e) @ r#else: Self::BB<'e,'a,'a> as |x|x.ptr())],
@@ -147,6 +154,14 @@ pub trait Builder<'a>: Clone + private::Sealed + 'a {
     where
         Self: 'd,
         Self: 'b;
+    // type InternalValShim<'b: 'a, 'd, 'e, K: 'b>: Value<'b, Tag = K>
+    //     + Same<Output = <Self::ValKind<'d, 'e> as ValueKind>::Val<'b, K>>
+    // where
+    //     Self: 'd,
+    //     Self: 'e;
+    // type Val<'b: 'a, K: 'b>: Value<'b, Tag = K>
+    //     + for<'d, 'e> Into<Self::InternalValShim<'b, 'd, 'e, K>>
+    //     + for<'d, 'e> From<Self::InternalValShim<'b, 'd, 'e, K>>;
     // type Val<'b, K: 'b>: Value<'b, Tag = K>
     //     + for<'d, 'e> Same<Output = <Self::ValKind<'d, 'e> as ValueKind>::Val<'b, K>>;
     type Mod<'b>: Mod<'b, Ctx<'b> = Self::Ctx<'b>>
@@ -230,6 +245,15 @@ macro_rules! impls {
               <'a>  =>  crate::LLHandle<'a,Normal,llvm_sys::LLVMBuilder>,
               <'a>  =>  crate::LLHandle<'a,Normal,llvm_sys::LLVMType>,
             );
+            impl From<crate::ICmp> for llvm_sys::LLVMIntPredicate{
+                fn from(a: crate::ICmp) -> Self{
+                    match a{
+                        crate::ICmp::Eq => llvm_sys::LLVMIntPredicate::LLVMIntEQ,
+                        crate ::ICmp::Lt => llvm_sys::LLVMIntPredicate::LLVMIntULT,
+                        crate ::ICmp::Lts => llvm_sys::LLVMIntPredicate::LLVMIntSLT,
+                    }
+                }
+            }
             impl<'a, K> private::Sealed for crate::LLHandle<'a, K, llvm_sys::LLVMValue> {}
             impl<'a, K: 'a> crate::Value<'a> for crate::LLHandle<'a, K, llvm_sys::LLVMValue> {
                 type Tag = K;
@@ -346,7 +370,8 @@ macro_rules! impls {
                 type ValKind<'d, 'b> = llvm_sys::LLVMValue  where
                 Self: 'd,
                 Self: 'b;
-
+                // type InternalValShim<'b: 'a, 'd, 'e, K: 'b> = crate::LLHandle<'b,K,llvm_sys::LLVMValue> where K: Sized, K: 'b, Self: 'd, Self: 'e;
+                // type Val<'b: 'a,K: 'b> = crate::LLHandle<'b,K,llvm_sys::LLVMValue> where K: Sized, K: 'b;
                 type Ty<'b>
                     = crate::LLHandle<'b, Normal, llvm_sys::LLVMType>
                 where
