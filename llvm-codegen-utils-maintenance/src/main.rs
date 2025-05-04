@@ -23,7 +23,7 @@ fn main() -> std::io::Result<()> {
             t += "\n";
             if p.starts_with("LLVM") {
                 for (a, b) in LLVMS.iter() {
-                    t += &format!("llvm-sys-{a}={{version=\"{b}\",package=\"llvm-sys\"}}\n");
+                    t += &format!("llvm-sys-{a}={{version=\"^{b}\",package=\"llvm-sys\"}}\n");
                 }
             }
         }
@@ -116,7 +116,7 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 static LLVMS: LazyLock<Vec<(&'static str, &'static str)>> =
-    LazyLock::new(|| vec![("190", "191"), ("180", "181")]);
+    LazyLock::new(|| vec![("190", "191"), ("180", "181"),("200","201")]);
 fn cargo(root: PathBuf, ver: &str) -> std::io::Result<()> {
     let p = root.join("Cargo.toml");
     if !p.exists() {

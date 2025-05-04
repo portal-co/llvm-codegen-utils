@@ -3,8 +3,9 @@ members=[ "llvm-codegen-utils-core","llvm-codegen-utils-maintenance", "llvm-code
 resolver="2"
 [workspace.dependencies]
 # GEN LLVM
-llvm-sys-190={version="191",package="llvm-sys"}
-llvm-sys-180={version="181",package="llvm-sys"}
+llvm-sys-190={version="^191",package="llvm-sys"}
+llvm-sys-180={version="^181",package="llvm-sys"}
+llvm-sys-200={version="^201",package="llvm-sys"}
 # RESUME
 
 arena-traits="^0.2.0"
