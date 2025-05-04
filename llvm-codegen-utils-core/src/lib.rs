@@ -119,6 +119,7 @@ macro_rules! default_insts {
             [Alloca (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
             [Load2 (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
             [StructGEP2 (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr(), ('idx) @ idx: &'idx u32 as |x|*x, ('name) @ name : &'name CStr as |x|x.as_ptr())],
+
             [Store (('val) @ value: <Self::ValKind<'a,'a> as ValueKind>::Val<'val,Normal> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr())],
             [Add (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
             [And (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
@@ -187,6 +188,15 @@ pub trait Builder<'a>: Clone + private::Sealed + 'a {
     ) -> <Self::ValKind<'_, '_> as ValueKind>::Val<'g, Normal>
     where
         Self: 'h + 'i;
+        fn gep2<'b, 'c, 'd, 'e, 'f, 'h, 'i, 'g: 'a + 'b + 'c + 'd + 'e + 'f + 'h + 'i>(
+            &'b self,
+            resty: Self::Ty<'c>,
+            ptr: <Self::ValKind<'_, '_> as ValueKind>::Val<'d, Normal>,
+            args: impl Iterator<Item = <Self::ValKind<'h, 'i> as ValueKind>::Val<'e, Normal>>,
+            name: &'f CStr,
+        ) -> <Self::ValKind<'_, '_> as ValueKind>::Val<'g, Normal>
+        where
+            Self: 'h + 'i;
     default_insts!('a @ );
 }
 pub struct LLHandle<'a, K, T>(Arc<LLShim<'a, K, T>>);
@@ -422,6 +432,31 @@ macro_rules! impls {
                     };
                     unsafe { crate::LLHandle::leaked(res, Normal) }
                 }
+                fn gep2<'b, 'c, 'd, 'e, 'f, 'h, 'i, 'g: 'a + 'b + 'c + 'd + 'e + 'f + 'h + 'i>(
+                    &'b self,
+                    resty: Self::Ty<'c>,
+                    ptr2: <Self::ValKind<'_, '_> as ValueKind>::Val<'d, Normal>,
+                    args: impl Iterator<Item = <Self::ValKind<'h, 'i> as ValueKind>::Val<'e, Normal>>,
+                    name: &'f CStr,
+                ) -> <Self::ValKind<'_, '_> as ValueKind>::Val<'g, Normal>
+                where
+                    Self: 'h + 'i{
+                        let ptr = self.ptr();
+                        let resty = resty.ptr();
+                        let Fn = ptr2.ptr();
+                        let mut args = args.map(|a| a.ptr()).collect::<Vec<_>>();
+                        let res = unsafe {
+                            llvm_sys::core::LLVMBuildGEP2(
+                                ptr,
+                                resty,
+                                Fn,
+                                args.as_mut_ptr(),
+                                args.len().try_into().unwrap(),
+                                name.as_ptr(),
+                            )
+                        };
+                        unsafe { crate::LLHandle::leaked(res, Normal) } 
+                    }
                 default_insts!('a @ llvm_sys);
             }
         };
