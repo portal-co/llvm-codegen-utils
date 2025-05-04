@@ -7,6 +7,6 @@ llvm-sys-190={version="191",package="llvm-sys"}
 llvm-sys-180={version="181",package="llvm-sys"}
 # RESUME
 
-arena-traits="0.2.0"
-cfg-traits="v0.3.0-alpha.0"
-ssa-traits="v0.3.0-alpha.0"
+arena-traits="^0.2.0"
+cfg-traits="^0.3.0-alpha.0"
+ssa-traits="^0.3.0-alpha.0"
