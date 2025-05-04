@@ -118,6 +118,7 @@ macro_rules! default_insts {
         insts!(($l2) @ {
             [Alloca (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
             [Load2 (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
+            [StructGEP2 (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr(), ('idx) @ idx: &'idx u32 as |x|*x, ('name) @ name : &'name CStr as |x|x.as_ptr())],
             [Store (('val) @ value: <Self::ValKind<'a,'a> as ValueKind>::Val<'val,Normal> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr())],
             [Add (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
             [And (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
