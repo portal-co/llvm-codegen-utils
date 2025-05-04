@@ -9,7 +9,7 @@ fn main() -> std::io::Result<()> {
     args.next();
     let mut root = args.next().unwrap();
     let mut publish = false;
-    if root == "publish"{
+    if root == "publish" {
         publish = true;
         root = args.next().unwrap();
     }
@@ -46,7 +46,7 @@ fn main() -> std::io::Result<()> {
             continue;
         }
         if f.file_type()?.is_dir() {
-            cargo(f.path(),&ver)?;
+            cargo(f.path(), &ver)?;
         }
     }
     let xs = LLVMS.iter().map(|(a, _)| {
@@ -67,11 +67,24 @@ fn main() -> std::io::Result<()> {
         format!("{root}/llvm-codegen-utils-version-macros/src/macros.rs"),
         prettyplease::unparse(&syn::parse2(contents).unwrap()),
     )?;
-    if publish{
-        if !std::process::Command::new("git").arg("add").arg("-A").current_dir(&root).spawn()?.wait()?.success(){
+    if publish {
+        if !std::process::Command::new("git")
+            .arg("add")
+            .arg("-A")
+            .current_dir(&root)
+            .spawn()?
+            .wait()?
+            .success()
+        {
             panic!("command failed")
         };
-        std::process::Command::new("git").arg("commit").arg("-m").arg("publish cleanup").current_dir(&root).spawn()?.wait()?;
+        std::process::Command::new("git")
+            .arg("commit")
+            .arg("-m")
+            .arg("publish cleanup")
+            .current_dir(&root)
+            .spawn()?
+            .wait()?;
         for f in std::fs::read_dir(&root)? {
             let Ok(f) = f else {
                 continue;
@@ -79,20 +92,24 @@ fn main() -> std::io::Result<()> {
             if f.file_name().as_encoded_bytes().iter().all(|a| *a == b'.') {
                 continue;
             }
-            if !f.file_type()?.is_dir(){
+            if !f.file_type()?.is_dir() {
                 continue;
             }
-            if !f.path().join("Cargo.toml").exists(){
+            if !f.path().join("Cargo.toml").exists() {
                 continue;
             }
-            match f.file_name().to_str(){
+            match f.file_name().to_str() {
                 Some("llvm-codegen-utils-maintenance") => continue,
-                _ => {
-
-                }
+                _ => {}
             };
-            if !std::process::Command::new("cargo").arg("publish").current_dir(f.path()).spawn()?.wait()?.success(){
-                panic!("publish of {} failed",f.file_name().to_string_lossy())
+            if !std::process::Command::new("cargo")
+                .arg("publish")
+                .current_dir(f.path())
+                .spawn()?
+                .wait()?
+                .success()
+            {
+                panic!("publish of {} failed", f.file_name().to_string_lossy())
             }
         }
     }
@@ -129,13 +146,17 @@ fn cargo(root: PathBuf, ver: &str) -> std::io::Result<()> {
                 }
             }
             if p.starts_with("LL_DEPS") {
-                for d in deps.lines().chain(once("llvm-codegen-utils-version-macros")) {
+                for d in deps
+                    .lines()
+                    .chain(once("llvm-codegen-utils-version-macros"))
+                {
                     t += &format!(
-                        r#"{d} = {{ version = "{ver}", path = "../{d}", package = "px-{d}" }}{}"#
-                    ,"\n")
+                        r#"{d} = {{ version = "{ver}", path = "../{d}", package = "px-{d}" }}{}"#,
+                        "\n"
+                    )
                 }
             }
-            if p.starts_with("VERSION"){
+            if p.starts_with("VERSION") {
                 t += &format!("version = \"{ver}\"\n")
             }
         }
