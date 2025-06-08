@@ -1,5 +1,5 @@
 [package]
-name = "llvm-codegen-utils-info"
+name = "px-llvm-codegen-utils-info"
 # GEN VERSION
 version = "0.1.1"
 # RESUME

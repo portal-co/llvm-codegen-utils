@@ -6,7 +6,7 @@ publicsh = false
 
 [dependencies]
 itertools = "0.13.0"
-llvm-codegen-utils-info = { version = "*", path = "../llvm-codegen-utils-info" }
+llvm-codegen-utils-info = { version = "*", path = "../llvm-codegen-utils-info", package = "px-llvm-codegen-utils-info" }
 prettyplease = "0.2.25"
 proc-macro2 = "1.0.89"
 quasiquote = "0.1.1"

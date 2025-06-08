@@ -54,17 +54,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e9489c2807c139ffd9c1794f4af0ebe86a828db53ecdc7fea2111d0fed085d1"
 
 [[package]]
-name = "llvm-codegen-utils-info"
-version = "0.1.1"
-
-[[package]]
 name = "llvm-codegen-utils-maintenance"
 version = "0.1.0"
 dependencies = [
  "itertools 0.13.0",
- "llvm-codegen-utils-info",
  "prettyplease",
  "proc-macro2",
+ "px-llvm-codegen-utils-info",
  "quasiquote",
  "quote",
  "syn",
@@ -155,6 +151,10 @@ dependencies = [
  "px-llvm-codegen-utils-version-macros",
  "typenum",
 ]
+
+[[package]]
+name = "px-llvm-codegen-utils-info"
+version = "0.1.1"
 
 [[package]]
 name = "px-llvm-codegen-utils-version-macros"
