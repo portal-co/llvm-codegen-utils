@@ -66,7 +66,7 @@ macro_rules! inst {
     (($l2:lifetime)@ $i:ident ($(($($l:lifetime),*) @ $e:ident : $t:ty as |$v:ident|$b:expr),*) =>  $($llvm:ident )? => $stuff:tt) => {
         paste::paste!{
             #[allow(unreachable_code,unused_variables)]
-            fn $i<'b,$($($l),*),*,'res:  $($($l +)+ + )* 'b>(&'b self, $($e: $t),*) -> <Self::ValKind<'a,'a> as ValueKind>::Val<'res,Normal> where $($($l2 : $l),*),*{
+            fn $i<'b,$($($l),*),*,'res:  $($($l +)* + )* 'b>(&'b self, $($e: $t),*) -> <Self::ValKind<'a,'a> as ValueKind>::Val<'res,Normal> where $($($l2 : $l),*),*{
 
                 let builder = |(),$($e : $t),*| -> std::convert::Infallible{
                     panic!("abstract method used")
