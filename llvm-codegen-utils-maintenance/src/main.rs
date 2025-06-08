@@ -1,6 +1,7 @@
 use std::{fs::FileType, iter::once, path::PathBuf, sync::LazyLock};
 
 use itertools::Itertools;
+use llvm_codegen_utils_info::LLVMS;
 use quasiquote::quasiquote;
 use quote::format_ident;
 
@@ -115,8 +116,7 @@ fn main() -> std::io::Result<()> {
     }
     Ok(())
 }
-static LLVMS: LazyLock<Vec<(&'static str, &'static str)>> =
-    LazyLock::new(|| vec![("190", "191"), ("180", "181"),("200","201")]);
+
 fn cargo(root: PathBuf, ver: &str) -> std::io::Result<()> {
     let p = root.join("Cargo.toml");
     if !p.exists() {
