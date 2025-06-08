@@ -143,6 +143,7 @@ pub trait Ty<'a>: Clone + private::Sealed + 'a {
         Self: 'b;
     fn int_ty(ctx: Self::Ctx<'a>, size: u32) -> Self;
     fn ptr_ty(ctx: Self::Ctx<'a>, address_space: u32) -> Self;
+    fn struct_ty(ctx: Self::Ctx<'a>, fields: impl Iterator<Item = Self>, packed: bool) -> Self;
     fn fun_ty(self, params: impl Iterator<Item = Self>) -> Self;
 }
 pub trait Builder<'a>: Clone + private::Sealed + 'a {
@@ -188,15 +189,15 @@ pub trait Builder<'a>: Clone + private::Sealed + 'a {
     ) -> <Self::ValKind<'_, '_> as ValueKind>::Val<'g, Normal>
     where
         Self: 'h + 'i;
-        fn gep2<'b, 'c, 'd, 'e, 'f, 'h, 'i, 'g: 'a + 'b + 'c + 'd + 'e + 'f + 'h + 'i>(
-            &'b self,
-            resty: Self::Ty<'c>,
-            ptr: <Self::ValKind<'_, '_> as ValueKind>::Val<'d, Normal>,
-            args: impl Iterator<Item = <Self::ValKind<'h, 'i> as ValueKind>::Val<'e, Normal>>,
-            name: &'f CStr,
-        ) -> <Self::ValKind<'_, '_> as ValueKind>::Val<'g, Normal>
-        where
-            Self: 'h + 'i;
+    fn gep2<'b, 'c, 'd, 'e, 'f, 'h, 'i, 'g: 'a + 'b + 'c + 'd + 'e + 'f + 'h + 'i>(
+        &'b self,
+        resty: Self::Ty<'c>,
+        ptr: <Self::ValKind<'_, '_> as ValueKind>::Val<'d, Normal>,
+        args: impl Iterator<Item = <Self::ValKind<'h, 'i> as ValueKind>::Val<'e, Normal>>,
+        name: &'f CStr,
+    ) -> <Self::ValKind<'_, '_> as ValueKind>::Val<'g, Normal>
+    where
+        Self: 'h + 'i;
     default_insts!('a @ );
 }
 pub struct LLHandle<'a, K, T>(Arc<LLShim<'a, K, T>>);
@@ -302,6 +303,13 @@ macro_rules! impls {
                             args.len().try_into().unwrap(),
                             0,
                         )
+                    };
+                    unsafe { LLHandle::leaked(ptr, Normal) }
+                }
+                fn struct_ty(ctx: Self::Ctx<'a>, fields: impl Iterator<Item = Self>, packed: bool) -> Self{
+                    let mut fields = fields.map(|p| p.ptr()).collect::<Vec<_>>();
+                    let ptr = unsafe{
+                        llvm_sys::core::LLVMStructTypeInContext(ctx.ptr(),fields.as_mut_ptr(),fields.len().try_into().unwrap(),if packed{1}else{0})
                     };
                     unsafe { LLHandle::leaked(ptr, Normal) }
                 }
@@ -455,7 +463,7 @@ macro_rules! impls {
                                 name.as_ptr(),
                             )
                         };
-                        unsafe { crate::LLHandle::leaked(res, Normal) } 
+                        unsafe { crate::LLHandle::leaked(res, Normal) }
                     }
                 default_insts!('a @ llvm_sys);
             }
