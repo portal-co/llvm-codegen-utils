@@ -1,7 +1,7 @@
 [package]
 name = "px-llvm-codegen-utils-info"
 # GEN VERSION
-version = "0.1.3"
+version = "0.1.4"
 # RESUME
 edition = "2021"
 license = "CC0-1.0"
