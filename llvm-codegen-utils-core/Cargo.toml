@@ -18,6 +18,7 @@ paste = "1.0.15"
 llvm-sys-190={workspace=true,optional=true}
 llvm-sys-180={workspace=true,optional=true}
 llvm-sys-200={workspace=true,optional=true}
+llvm-sys-210={workspace=true,optional=true}
 # RESUME
 typenum = "1.17.0"
 [features]
@@ -25,4 +26,5 @@ typenum = "1.17.0"
 llvm-sys-190=["dep:llvm-sys-190"]
 llvm-sys-180=["dep:llvm-sys-180"]
 llvm-sys-200=["dep:llvm-sys-200"]
+llvm-sys-210=["dep:llvm-sys-210"]
 # RESUME

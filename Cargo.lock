@@ -109,6 +109,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "llvm-sys"
+version = "211.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "108b3ad2b2eaf2a561fc74196273b20e3436e4a688b8b44e250d83974dc1b2e2"
+dependencies = [
+ "anyhow",
+ "cc",
+ "lazy_static",
+ "libc",
+ "regex-lite",
+ "semver",
+]
+
+[[package]]
 name = "nonempty"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -141,11 +155,12 @@ dependencies = [
 
 [[package]]
 name = "px-llvm-codegen-utils-core"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "llvm-sys 181.2.0",
  "llvm-sys 191.0.0",
  "llvm-sys 201.0.1",
+ "llvm-sys 211.0.0",
  "nonempty",
  "paste",
  "px-llvm-codegen-utils-version-macros",
@@ -154,11 +169,11 @@ dependencies = [
 
 [[package]]
 name = "px-llvm-codegen-utils-info"
-version = "0.1.3"
+version = "0.1.4"
 
 [[package]]
 name = "px-llvm-codegen-utils-version-macros"
-version = "0.1.3"
+version = "0.1.4"
 
 [[package]]
 name = "quasiquote"

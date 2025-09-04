@@ -4,5 +4,6 @@ macro_rules! vers {
         #[cfg(feature = "llvm-sys-190")] $($m)*! (llvm_sys_190 { $($contents)* });
         #[cfg(feature = "llvm-sys-180")] $($m)*! (llvm_sys_180 { $($contents)* });
         #[cfg(feature = "llvm-sys-200")] $($m)*! (llvm_sys_200 { $($contents)* });
+        #[cfg(feature = "llvm-sys-210")] $($m)*! (llvm_sys_210 { $($contents)* });
     };
 }
