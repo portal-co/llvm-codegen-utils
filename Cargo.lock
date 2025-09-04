@@ -155,7 +155,7 @@ dependencies = [
 
 [[package]]
 name = "px-llvm-codegen-utils-core"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "llvm-sys 181.2.0",
  "llvm-sys 191.0.0",
@@ -169,11 +169,11 @@ dependencies = [
 
 [[package]]
 name = "px-llvm-codegen-utils-info"
-version = "0.1.4"
+version = "0.1.5"
 
 [[package]]
 name = "px-llvm-codegen-utils-version-macros"
-version = "0.1.4"
+version = "0.1.5"
 
 [[package]]
 name = "quasiquote"
