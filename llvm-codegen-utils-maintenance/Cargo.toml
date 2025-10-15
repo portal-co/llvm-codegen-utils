@@ -2,7 +2,7 @@
 name = "llvm-codegen-utils-maintenance"
 version = "0.1.0"
 edition = "2021"
-publicsh = false
+publish = false
 
 [dependencies]
 itertools = "0.13.0"

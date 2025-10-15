@@ -124,16 +124,16 @@ macro_rules! default_insts {
             [Add (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
             [And (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
             [Neg (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(),  ('name) @ name : &'name CStr as |x|x.as_ptr())],
-      [  Not (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-      [ TruncOrBitCast (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(),('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-      [Mul (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-      [Or (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-     [ Sub (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-     [Xor (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-         [ICmp (('op) @ op: crate::ICmp as |a|a.into(),('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
+            [Not (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
+            [TruncOrBitCast (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(),('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
+            [Mul (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
+            [Or (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
+            [Sub (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
+            [Xor (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
+            [ICmp (('op) @ op: crate::ICmp as |a|a.into(),('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
 
-     [ Br (('dest) @ dest: Self::BB<'dest,'a,'a> as |x|x.ptr())],
-     [CondBr (('cond) @ r#if: <Self::ValKind<'a,'a> as ValueKind>::Val<'cond,Normal> as |x|x.ptr(), ('then) @ then: Self::BB<'then,'a,'a> as |x|x.ptr(),('e) @ r#else: Self::BB<'e,'a,'a> as |x|x.ptr())],
+            [Br (('dest) @ dest: Self::BB<'dest,'a,'a> as |x|x.ptr())],
+            [CondBr (('cond) @ r#if: <Self::ValKind<'a,'a> as ValueKind>::Val<'cond,Normal> as |x|x.ptr(), ('then) @ then: Self::BB<'then,'a,'a> as |x|x.ptr(),('e) @ r#else: Self::BB<'e,'a,'a> as |x|x.ptr())],
         } => $(<$llvm>)?);
     };
 }
