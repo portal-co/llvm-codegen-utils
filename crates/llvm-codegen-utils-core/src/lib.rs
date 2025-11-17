@@ -210,7 +210,9 @@ pub struct LLHandle<'a, K, T> {
 }
 impl<'a, K, T> Clone for LLHandle<'a, K, T> {
     fn clone(&self) -> Self {
-        M.lock().unwrap().get_mut(self.val as usize).0 += 1;
+        if let Some((n, _)) = M.lock().unwrap().get_mut(self.val as usize) {
+            *n += 1;
+        }
         Self {
             val: self.val.clone(),
             key: self.key.clone(),
