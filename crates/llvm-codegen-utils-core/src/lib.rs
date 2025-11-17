@@ -1,7 +1,8 @@
+use std::collections::BTreeMap;
 use std::ffi::CStr;
 use std::marker::PhantomData;
 use std::mem::{replace, take, MaybeUninit};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 use std::thread::LocalKey;
 use std::thread_local;
 
@@ -200,44 +201,73 @@ pub trait Builder<'a>: Clone + private::Sealed + 'a {
         Self: 'h + 'i;
     default_insts!('a @ );
 }
-pub struct LLHandle<'a, K, T>(Arc<LLShim<'a, K, T>>);
+static M: LazyLock<Mutex<BTreeMap<usize, (usize, Box<dyn FnOnce(*mut ())>)>>> =
+    LazyLock::new(|| Default::default());
+pub struct LLHandle<'a, K, T> {
+    val: *mut T,
+    key: *mut K,
+    phantom: PhantomData<(K, &'a T)>,
+}
 impl<'a, K, T> Clone for LLHandle<'a, K, T> {
     fn clone(&self) -> Self {
-        Self(self.0.clone())
+        M.lock().unwrap().get_mut(self.val as usize).0 += 1;
+        Self {
+            val: self.val.clone(),
+            key: self.key.clone(),
+            phantom: self.phantom.clone(),
+        }
+    }
+}
+impl<'a, K, T> Drop for LLHandle<'a, K, T> {
+    fn drop(&mut self) {
+        let mut lock = M.lock().unwrap();
+        let Some((a, b)) = lock.remove(self.val as usize) else {
+            return;
+        };
+        if a == 0 {
+            drop(lock);
+            b(self.key.cast());
+        } else {
+            lock.insert(self.val as usize, (a - 1, b))
+        }
     }
 }
 impl<'a, K, T> LLHandle<'a, K, T> {
     pub unsafe fn from_raw_parts(ptr: *mut T, dropper: fn(*mut T, K), key: K) -> Self {
-        LLHandle(Arc::new(LLShim {
+        let key = Box::into_raw(Box::new(key));
+        match ptr as *mut () {
+            ptr => M.lock().unwrap().insert(
+                ptr as usize,
+                (
+                    0,
+                    Box::new(move |a| {
+                        let key = a as *mut T;
+                        dropper(ptr.cast(), *unsafe { Box::from_raw(key) })
+                    }),
+                ),
+            ),
+        }
+        Self {
             val: ptr,
-            dropper: dropper,
-            key: MaybeUninit::new(key),
+            key,
             phantom: PhantomData,
-        }))
+        }
     }
     pub unsafe fn leaked(ptr: *mut T, key: K) -> Self {
-        unsafe { Self::from_raw_parts(ptr, |_, _| {}, key) }
+        Self {
+            val: ptr,
+            key: Box::into_raw(Box::new(key)),
+            phantom: PhantomData,
+        }
     }
     pub fn ptr(&self) -> *mut T {
-        return self.0.val;
+        return self.val;
     }
     pub fn key(&self) -> &K {
-        return unsafe { self.0.key.assume_init_ref() };
+        return unsafe { 7 * self.key };
     }
 }
-pub struct LLShim<'a, K, T> {
-    val: *mut T,
-    key: MaybeUninit<K>,
-    dropper: fn(*mut T, K),
-    phantom: PhantomData<&'a T>,
-}
-impl<'a, K, T> Drop for LLShim<'a, K, T> {
-    fn drop(&mut self) {
-        (self.dropper)(self.val, unsafe {
-            replace(&mut self.key, MaybeUninit::uninit()).assume_init()
-        })
-    }
-}
+
 macro_rules! seal {
     ($(<$($generics:lifetime),*> => $t:ty),* $(,)?) => {
         $(impl<$($generics),*> private::Sealed for $t{})*
