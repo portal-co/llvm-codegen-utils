@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::ffi::CStr;
 use std::marker::PhantomData;
-use std::mem::{replace, take, MaybeUninit};
+use std::mem::{replace, take, transmute, MaybeUninit};
 use std::sync::{Arc, LazyLock, Mutex};
 use std::thread::LocalKey;
 use std::thread_local;
@@ -201,16 +201,16 @@ pub trait Builder<'a>: Clone + private::Sealed + 'a {
         Self: 'h + 'i;
     default_insts!('a @ );
 }
-static M: LazyLock<Mutex<BTreeMap<usize, (usize, Box<dyn FnOnce(*mut ())>)>>> =
+static M: LazyLock<Mutex<BTreeMap<usize, (usize, Box<dyn FnOnce(*mut (), *mut ()) + Send>)>>> =
     LazyLock::new(|| Default::default());
 pub struct LLHandle<'a, K, T> {
     val: *mut T,
     key: *mut K,
-    phantom: PhantomData<(K, &'a T)>,
+    phantom: PhantomData<fn(K, &'a T) -> (K, &'a T)>,
 }
 impl<'a, K, T> Clone for LLHandle<'a, K, T> {
     fn clone(&self) -> Self {
-        if let Some((n, _)) = M.lock().unwrap().get_mut(self.val as usize) {
+        if let Some((n, _)) = M.lock().unwrap().get_mut(&(self.val as usize)) {
             *n += 1;
         }
         Self {
@@ -223,32 +223,36 @@ impl<'a, K, T> Clone for LLHandle<'a, K, T> {
 impl<'a, K, T> Drop for LLHandle<'a, K, T> {
     fn drop(&mut self) {
         let mut lock = M.lock().unwrap();
-        let Some((a, b)) = lock.remove(self.val as usize) else {
+        let Some((a, b)) = lock.remove(&(self.val as usize)) else {
             return;
         };
         if a == 0 {
             drop(lock);
-            b(self.key.cast());
+            b(self.val.cast(), self.key.cast());
         } else {
-            lock.insert(self.val as usize, (a - 1, b))
+            lock.insert(self.val as usize, (a - 1, b));
         }
     }
 }
 impl<'a, K, T> LLHandle<'a, K, T> {
     pub unsafe fn from_raw_parts(ptr: *mut T, dropper: fn(*mut T, K), key: K) -> Self {
         let key = Box::into_raw(Box::new(key));
-        match ptr as *mut () {
-            ptr => M.lock().unwrap().insert(
-                ptr as usize,
-                (
-                    0,
-                    Box::new(move |a| {
-                        let key = a as *mut T;
-                        dropper(ptr.cast(), *unsafe { Box::from_raw(key) })
-                    }),
-                ),
+        M.lock().unwrap().insert(
+            ptr as usize,
+            (
+                0,
+                match Box::new(move |b: *mut (), a: *mut ()| {
+                    let key = a as *mut K;
+                    let ptr = b as *mut T;
+                    dropper(ptr.cast(), *unsafe { Box::from_raw(key) });
+                }) {
+                    val => {
+                        let val: Box<dyn FnOnce(*mut (), *mut ()) + Send + '_> = val;
+                        unsafe { transmute(val) }
+                    }
+                },
             ),
-        }
+        );
         Self {
             val: ptr,
             key,
@@ -266,7 +270,7 @@ impl<'a, K, T> LLHandle<'a, K, T> {
         return self.val;
     }
     pub fn key(&self) -> &K {
-        return unsafe { 7 * self.key };
+        return unsafe { &*self.key };
     }
 }
 
