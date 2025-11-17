@@ -39,7 +39,7 @@ fn main() -> std::io::Result<()> {
     }
     std::fs::write(format!("{root}/Cargo.toml"), t)?;
     let ver = std::fs::read_to_string(format!("{root}/version.txt"))?;
-    for f in std::fs::read_dir(&root)? {
+    for f in std::fs::read_dir(&format!("{root}/crates"))? {
         let Ok(f) = f else {
             continue;
         };
@@ -65,7 +65,7 @@ fn main() -> std::io::Result<()> {
         }
     };
     std::fs::write(
-        format!("{root}/llvm-codegen-utils-version-macros/src/macros.rs"),
+        format!("{root}/crates/llvm-codegen-utils-version-macros/src/macros.rs"),
         prettyplease::unparse(&syn::parse2(contents).unwrap()),
     )?;
     if publish {
@@ -86,7 +86,7 @@ fn main() -> std::io::Result<()> {
             .current_dir(&root)
             .spawn()?
             .wait()?;
-        for f in std::fs::read_dir(&root)? {
+        for f in std::fs::read_dir(&format!("{root}/crates"))? {
             let Ok(f) = f else {
                 continue;
             };

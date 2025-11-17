@@ -1,5 +1,5 @@
 [workspace]
-members=[ "llvm-codegen-utils-core", "llvm-codegen-utils-info","llvm-codegen-utils-maintenance", "llvm-codegen-utils-version-macros"]
+members=[ "crates/llvm-codegen-utils-core", "crates/llvm-codegen-utils-info","crates/llvm-codegen-utils-maintenance", "crates/llvm-codegen-utils-version-macros"]
 resolver="2"
 [workspace.dependencies]
 # GEN LLVM
