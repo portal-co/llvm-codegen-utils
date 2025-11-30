@@ -14,7 +14,9 @@
 ///
 /// For each enabled LLVM version feature, this expands to:
 /// ```ignore
-/// #[cfg(feature = "llvm-sys-XXX")] my_macro!(llvm_sys_XXX { /* contents */ });
+/// #[cfg(feature = "llvm-sys-190")] my_macro!(llvm_sys_190 { /* contents */ });
+/// #[cfg(feature = "llvm-sys-180")] my_macro!(llvm_sys_180 { /* contents */ });
+/// // ... and so on for other enabled versions
 /// ```
 #[macro_export]
 macro_rules! vers {

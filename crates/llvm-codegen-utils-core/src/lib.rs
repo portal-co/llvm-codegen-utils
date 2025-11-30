@@ -232,6 +232,10 @@ pub trait Ty<'a>: Clone + private::Sealed + 'a {
 ///
 /// # Supported Instructions
 ///
+/// Instructions are generated via trait methods. Method names follow LLVM's
+/// naming convention (PascalCase) for macro-generated methods, while manually
+/// defined methods use snake_case:
+///
 /// - **Memory**: `Alloca`, `Load2`, `Store`, `StructGEP2`, `gep2`
 /// - **Arithmetic**: `Add`, `Sub`, `Mul`, `Neg`
 /// - **Bitwise**: `And`, `Or`, `Xor`, `Not`
