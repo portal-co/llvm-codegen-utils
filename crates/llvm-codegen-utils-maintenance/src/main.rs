@@ -1,3 +1,34 @@
+//! # LLVM Codegen Utils Maintenance
+//!
+//! Internal maintenance tool for managing the llvm-codegen-utils workspace.
+//!
+//! ## Purpose
+//!
+//! This tool handles:
+//! - Generating LLVM version-specific Cargo.toml dependency entries
+//! - Synchronizing version numbers across all crates
+//! - Generating the `vers!` macro implementation
+//! - Publishing crates to crates.io (with `publish` argument)
+//!
+//! ## Usage
+//!
+//! ```bash
+//! # Run maintenance tasks
+//! cargo run -p llvm-codegen-utils-maintenance -- /path/to/workspace
+//!
+//! # Publish all crates
+//! cargo run -p llvm-codegen-utils-maintenance -- publish /path/to/workspace
+//! ```
+//!
+//! ## Cargo.toml Markers
+//!
+//! The tool processes special comment markers in Cargo.toml files:
+//!
+//! - `# GEN LLVM` / `# RESUME` - Generate LLVM dependency entries
+//! - `# GEN LL_FEATURES` / `# RESUME` - Generate LLVM feature flags
+//! - `# GEN LL_DEPS` / `# RESUME` - Generate cross-crate LLVM dependencies
+//! - `# GEN VERSION` / `# RESUME` - Synchronize version from version.txt
+
 use std::{fs::FileType, iter::once, path::PathBuf, sync::LazyLock};
 
 use itertools::Itertools;
