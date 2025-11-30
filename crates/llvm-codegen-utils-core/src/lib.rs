@@ -19,10 +19,12 @@
 //!
 //! This crate supports multiple LLVM versions through feature flags:
 //!
-//! - `llvm-sys-180` - LLVM 18
+//! <!-- GEN FEATURE_FLAGS -->
 //! - `llvm-sys-190` - LLVM 19
+//! - `llvm-sys-180` - LLVM 18
 //! - `llvm-sys-200` - LLVM 20
 //! - `llvm-sys-210` - LLVM 21
+//! <!-- RESUME -->
 //!
 //! Enable exactly one feature flag corresponding to your installed LLVM version.
 

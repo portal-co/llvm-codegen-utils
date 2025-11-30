@@ -7,18 +7,20 @@ A Rust library to facilitate targeting LLVM, providing a mostly safe interface w
 ## Features
 
 - Safe(r) interface over raw LLVM bindings
-- Support for multiple LLVM versions (18, 19, 20, 21)
+- Support for multiple LLVM versions (<!-- GEN LLVM_VERSION_LIST -->19, 18, 20, 21<!-- RESUME -->)
 - Type-safe builders, values, types, and basic blocks
 - Automatic resource management through custom handle types
 
 ## Supported LLVM Versions
 
+<!-- GEN LLVM_VERSION_TABLE -->
 | LLVM Version | Feature Flag | llvm-sys Version |
 |--------------|--------------|------------------|
-| LLVM 18      | `llvm-sys-180` | ^181           |
 | LLVM 19      | `llvm-sys-190` | ^191           |
+| LLVM 18      | `llvm-sys-180` | ^181           |
 | LLVM 20      | `llvm-sys-200` | ^201           |
 | LLVM 21      | `llvm-sys-210` | ^211           |
+<!-- RESUME -->
 
 ## Workspace Structure
 

@@ -22,9 +22,11 @@
 //! ## Feature Flags
 //!
 //! The macro generates code conditionally based on these feature flags:
-//! - `llvm-sys-180` - LLVM 18 support
-//! - `llvm-sys-190` - LLVM 19 support
-//! - `llvm-sys-200` - LLVM 20 support
-//! - `llvm-sys-210` - LLVM 21 support
+//! <!-- GEN FEATURE_FLAGS -->
+//! - `llvm-sys-190` - LLVM 19
+//! - `llvm-sys-180` - LLVM 18
+//! - `llvm-sys-200` - LLVM 20
+//! - `llvm-sys-210` - LLVM 21
+//! <!-- RESUME -->
 
 include!("macros.rs");
