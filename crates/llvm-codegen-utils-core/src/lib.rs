@@ -1,3 +1,33 @@
+//! # LLVM Codegen Utils Core
+//!
+//! This crate provides safe abstractions over LLVM's C API for code generation.
+//!
+//! ## Overview
+//!
+//! The core abstractions include:
+//!
+//! - [`Ctx`] - LLVM context wrapper
+//! - [`Mod`] - LLVM module wrapper for organizing functions and global values
+//! - [`Value`] / [`ValueKind`] - Type-safe representations of LLVM values
+//! - [`Func`] - Function value wrapper
+//! - [`BB`] - Basic block wrapper for control flow
+//! - [`Ty`] - LLVM type wrapper with constructors for common types
+//! - [`Builder`] - IR builder providing methods for instruction generation
+//! - [`LLHandle`] - Smart handle for LLVM resources with automatic cleanup
+//!
+//! ## LLVM Version Support
+//!
+//! This crate supports multiple LLVM versions through feature flags:
+//!
+//! <!-- GEN FEATURE_FLAGS -->
+//! - `llvm-sys-190` - LLVM 19
+//! - `llvm-sys-180` - LLVM 18
+//! - `llvm-sys-200` - LLVM 20
+//! - `llvm-sys-210` - LLVM 21
+//! <!-- RESUME -->
+//!
+//! Enable exactly one feature flag corresponding to your installed LLVM version.
+
 use std::collections::BTreeMap;
 use std::ffi::CStr;
 use std::marker::PhantomData;
@@ -12,42 +42,78 @@ mod private {
     pub trait Sealed {}
 }
 
+/// Trait for LLVM context wrappers.
+///
+/// The context is the top-level container for LLVM's internal state.
 pub trait Ctx<'a>: Clone + private::Sealed + 'a {}
+
+/// Trait for LLVM module wrappers.
+///
+/// A module contains functions, global variables, and other top-level definitions.
 pub trait Mod<'a>: Clone + private::Sealed + 'a {
+    /// The context type associated with this module.
     type Ctx<'b>: Ctx<'b>
     where
         Self: 'b;
+    /// Returns the context this module belongs to.
     fn ctx<'b: 'a>(&'b self) -> Self::Ctx<'b>;
+    /// Creates a new module with the given name in the specified context.
     fn create_mod<'b, 'c, 'd>(a: &'b CStr, ctx: &'c Self::Ctx<'d>) -> Self
     where
         'a: 'b + 'c + 'd;
 }
+
+/// Trait for LLVM value wrappers.
+///
+/// Values represent computed results (constants, function arguments, instructions, etc.).
 pub trait Value<'a>: Clone + private::Sealed + 'a {
+    /// The tag type used to distinguish value categories.
     type Tag: 'a;
+    /// The value kind associated with this value.
     type Kind: for<'b> ValueKind<Val<'a, Self::Tag> = Self, Mod<'b> = Self::Mod<'b>>;
+    /// The module type this value belongs to.
     type Mod<'b>: Mod<'b>;
+    /// Returns the module this value belongs to.
     fn r#mod<'b: 'a>(&'b self) -> Self::Mod<'b>;
 }
+
+/// Trait for classifying LLVM value kinds.
+///
+/// This provides factory methods for creating values of specific types.
 pub trait ValueKind: private::Sealed {
+    /// The module type.
     type Mod<'a>: Mod<'a>;
+    /// The value type parameterized by a tag.
     type Val<'a, K: 'a>: for<'b> Value<'a, Tag = K, Kind = Self, Mod<'b> = Self::Mod<'b>>
     where
         K: 'a;
+    /// The function type.
     type Func<'a>: for<'b> Func<'a, Kind = Self, Mod<'b> = Self::Mod<'b>>;
+    /// The LLVM type wrapper.
     type Ty<'a>: Ty<'a>;
+    /// Creates a constant integer value.
     fn const_int<'a>(ty: Self::Ty<'a>, n: u64, sext: bool) -> Self::Val<'a, Normal>;
+    /// Adds a function to the module.
     fn function<'a, 'b, 'c, 'd: 'a + 'b + 'c>(
         r#mod: Self::Mod<'a>,
         name: &'b CStr,
         ty: Self::Ty<'c>,
     ) -> Self::Func<'d>;
 }
+
+/// Trait for LLVM function value wrappers.
 pub trait Func<'a>: Clone + private::Sealed + Value<'a, Tag = FuncTag> + 'a {}
+
+/// Trait for LLVM basic block wrappers.
+///
+/// Basic blocks are sequences of instructions with a single entry and single exit.
 pub trait BB<'a>: Clone + private::Sealed + 'a {
+    /// The function type this basic block belongs to.
     type Func<'b>: Func<'b>
     where
         'a: 'b,
         Self: 'b;
+    /// Creates a new basic block in the given function.
     fn new<'b, 'c>(f: Self::Func<'b>, name: &'c CStr) -> Self
     where
         'a: 'b + 'c;
@@ -64,8 +130,9 @@ macro_rules! inst {
     (($l2:lifetime)@ [$($a:tt)*] => $($b:tt)*) => {
         inst!(($l2) @ $($a)* => $($b)* => [$($a)*]);
     };
-    (($l2:lifetime)@ $i:ident ($(($($l:lifetime),*) @ $e:ident : $t:ty as |$v:ident|$b:expr),*) =>  $($llvm:ident )? => $stuff:tt) => {
+    (($l2:lifetime)@ $(#[$doc:meta])* $i:ident ($(($($l:lifetime),*) @ $e:ident : $t:ty as |$v:ident|$b:expr),*) =>  $($llvm:ident )? => $stuff:tt) => {
         paste::paste!{
+            $(#[$doc])*
             #[allow(unreachable_code,unused_variables)]
             fn $i<'b,$($($l),*),*,'res:  $($($l +)* )* 'b>(&'b self, $($e: $t),*) -> <Self::ValKind<'a,'a> as ValueKind>::Val<'res,Normal> where $($($l2 : $l),*),*{
 
@@ -99,55 +166,212 @@ macro_rules! inst {
     };
 }
 macro_rules! insts {
-    (($l2:lifetime)@{[$($t0:tt)*], $([$($t:tt)*],)*} => $(<$llvm:ident>)?) => {
-        inst!(($l2)@[$($t0)*] => $($llvm)?);
+    (($l2:lifetime)@{[$(#[$doc:meta])* $i:ident $($t0:tt)*], $([$($t:tt)*],)*} => $(<$llvm:ident>)?) => {
+        inst!(($l2)@[$(#[$doc])* $i $($t0)*] => $($llvm)?);
         insts!(($l2)@{$([$($t)*],)*} => $(<$llvm>)?);
     };
     (($l2:lifetime)@{} => $(<$llvm:ident>)?) => {
 
     };
 }
+/// Integer comparison predicates for use with [`Builder::ICmp`].
 #[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Debug)]
 #[non_exhaustive]
 pub enum ICmp {
+    /// Equal comparison.
     Eq,
+    /// Unsigned less-than comparison.
     Lt,
+    /// Signed less-than comparison.
     Lts,
 }
 macro_rules! default_insts {
     ($l2:lifetime @ $($llvm:ident)?) => {
         insts!(($l2) @ {
-            [Alloca (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [Load2 (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [StructGEP2 (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr(), ('idx) @ idx: &'idx u32 as |x|*x, ('name) @ name : &'name CStr as |x|x.as_ptr())],
-
-            [Store (('val) @ value: <Self::ValKind<'a,'a> as ValueKind>::Val<'val,Normal> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr())],
-            [Add (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [And (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [Neg (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(),  ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [Not (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [TruncOrBitCast (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(),('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [Mul (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [Or (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [Sub (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [Xor (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [ICmp (('op) @ op: crate::ICmp as |a|a.into(),('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-
-            [Br (('dest) @ dest: Self::BB<'dest,'a,'a> as |x|x.ptr())],
-            [CondBr (('cond) @ r#if: <Self::ValKind<'a,'a> as ValueKind>::Val<'cond,Normal> as |x|x.ptr(), ('then) @ then: Self::BB<'then,'a,'a> as |x|x.ptr(),('e) @ r#else: Self::BB<'e,'a,'a> as |x|x.ptr())],
+            [
+                /// Allocates memory on the stack for a value of the given type.
+                ///
+                /// Returns a pointer to the allocated memory.
+                ///
+                /// # Parameters
+                /// - `ty`: The type to allocate space for
+                /// - `name`: Name for the resulting instruction
+                Alloca (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Loads a value from memory.
+                ///
+                /// # Parameters
+                /// - `ty`: The type of the value to load
+                /// - `pointer`: Pointer to the memory location to load from
+                /// - `name`: Name for the resulting instruction
+                Load2 (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Gets a pointer to a struct field.
+                ///
+                /// # Parameters
+                /// - `ty`: The type of the struct
+                /// - `pointer`: Pointer to the struct
+                /// - `idx`: Index of the field to get a pointer to
+                /// - `name`: Name for the resulting instruction
+                StructGEP2 (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr(), ('idx) @ idx: &'idx u32 as |x|*x, ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Stores a value to memory.
+                ///
+                /// # Parameters
+                /// - `value`: The value to store
+                /// - `pointer`: Pointer to the memory location to store to
+                Store (('val) @ value: <Self::ValKind<'a,'a> as ValueKind>::Val<'val,Normal> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr())
+            ],
+            [
+                /// Adds two integer values.
+                ///
+                /// # Parameters
+                /// - `lhs`: Left-hand side operand
+                /// - `rhs`: Right-hand side operand
+                /// - `name`: Name for the resulting instruction
+                Add (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Performs bitwise AND on two values.
+                ///
+                /// # Parameters
+                /// - `lhs`: Left-hand side operand
+                /// - `rhs`: Right-hand side operand
+                /// - `name`: Name for the resulting instruction
+                And (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Negates an integer value (two's complement).
+                ///
+                /// # Parameters
+                /// - `lhs`: The value to negate
+                /// - `name`: Name for the resulting instruction
+                Neg (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(),  ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Performs bitwise NOT on a value.
+                ///
+                /// # Parameters
+                /// - `lhs`: The value to invert
+                /// - `name`: Name for the resulting instruction
+                Not (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Truncates or bitcasts a value to a different type.
+                ///
+                /// # Parameters
+                /// - `lhs`: The value to convert
+                /// - `ty`: The target type
+                /// - `name`: Name for the resulting instruction
+                TruncOrBitCast (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(),('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Multiplies two integer values.
+                ///
+                /// # Parameters
+                /// - `lhs`: Left-hand side operand
+                /// - `rhs`: Right-hand side operand
+                /// - `name`: Name for the resulting instruction
+                Mul (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Performs bitwise OR on two values.
+                ///
+                /// # Parameters
+                /// - `lhs`: Left-hand side operand
+                /// - `rhs`: Right-hand side operand
+                /// - `name`: Name for the resulting instruction
+                Or (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Subtracts two integer values.
+                ///
+                /// # Parameters
+                /// - `lhs`: Left-hand side operand
+                /// - `rhs`: Right-hand side operand
+                /// - `name`: Name for the resulting instruction
+                Sub (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Performs bitwise XOR on two values.
+                ///
+                /// # Parameters
+                /// - `lhs`: Left-hand side operand
+                /// - `rhs`: Right-hand side operand
+                /// - `name`: Name for the resulting instruction
+                Xor (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Performs an integer comparison.
+                ///
+                /// # Parameters
+                /// - `op`: The comparison predicate (see [`ICmp`])
+                /// - `lhs`: Left-hand side operand
+                /// - `rhs`: Right-hand side operand
+                /// - `name`: Name for the resulting instruction
+                ICmp (('op) @ op: crate::ICmp as |a|a.into(),('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Unconditional branch to a basic block.
+                ///
+                /// # Parameters
+                /// - `dest`: The target basic block
+                Br (('dest) @ dest: Self::BB<'dest,'a,'a> as |x|x.ptr())
+            ],
+            [
+                /// Conditional branch based on an i1 value.
+                ///
+                /// # Parameters
+                /// - `if`: The condition (must be i1 type)
+                /// - `then`: Basic block to branch to if condition is true
+                /// - `else`: Basic block to branch to if condition is false
+                CondBr (('cond) @ r#if: <Self::ValKind<'a,'a> as ValueKind>::Val<'cond,Normal> as |x|x.ptr(), ('then) @ then: Self::BB<'then,'a,'a> as |x|x.ptr(),('e) @ r#else: Self::BB<'e,'a,'a> as |x|x.ptr())
+            ],
         } => $(<$llvm>)?);
     };
 }
+/// Trait for LLVM type wrappers.
+///
+/// Provides constructors for common LLVM types: integers, pointers, structs, and functions.
 pub trait Ty<'a>: Clone + private::Sealed + 'a {
+    /// The context type associated with this type.
     type Ctx<'b>: Ctx<'b>
     where
         Self: 'b;
+    /// Creates an integer type with the specified bit width.
     fn int_ty(ctx: Self::Ctx<'a>, size: u32) -> Self;
+    /// Creates a pointer type in the specified address space.
     fn ptr_ty(ctx: Self::Ctx<'a>, address_space: u32) -> Self;
+    /// Creates a struct type with the specified field types.
     fn struct_ty(ctx: Self::Ctx<'a>, fields: impl Iterator<Item = Self>, packed: bool) -> Self;
+    /// Creates a function type with this type as the return type.
     fn fun_ty(self, params: impl Iterator<Item = Self>) -> Self;
 }
+
+/// Trait for LLVM IR builder wrappers.
+///
+/// The builder provides methods for generating LLVM IR instructions.
+/// It maintains a current insertion point (basic block) and provides
+/// methods for common operations like arithmetic, memory access, and control flow.
+///
+/// # Supported Instructions
+///
+/// Instructions are generated via trait methods. Method names follow LLVM's
+/// naming convention (PascalCase) for macro-generated methods, while manually
+/// defined methods use snake_case:
+///
+/// - **Memory**: `Alloca`, `Load2`, `Store`, `StructGEP2`, `gep2`
+/// - **Arithmetic**: `Add`, `Sub`, `Mul`, `Neg`
+/// - **Bitwise**: `And`, `Or`, `Xor`, `Not`
+/// - **Comparison**: `ICmp`
+/// - **Conversion**: `TruncOrBitCast`
+/// - **Control Flow**: `Br`, `CondBr`
+/// - **Calls**: `call`
 pub trait Builder<'a>: Clone + private::Sealed + 'a {
+    /// The basic block type for this builder.
     type BB<'b, 'e, 'd>: BB<'b, Func<'b>: Value<'b, Kind = Self::ValKind<'e, 'd>>>
     where
         Self: 'b,
@@ -203,6 +427,24 @@ pub trait Builder<'a>: Clone + private::Sealed + 'a {
 }
 static M: LazyLock<Mutex<BTreeMap<usize, (usize, Box<dyn FnOnce(*mut (), *mut ()) + Send>)>>> =
     LazyLock::new(|| Default::default());
+
+/// A smart handle for LLVM resources.
+///
+/// This type provides reference counting and automatic cleanup for LLVM resources.
+/// When the last clone of a handle is dropped, the associated LLVM resource is
+/// disposed of via the dropper function provided during construction.
+///
+/// # Type Parameters
+///
+/// - `'a` - Lifetime of the handle
+/// - `K` - Key/tag type used to categorize the resource
+/// - `T` - The underlying LLVM type being wrapped
+///
+/// # Safety
+///
+/// This type uses unsafe internally to manage raw pointers to LLVM resources.
+/// Callers must ensure the underlying LLVM resources remain valid for the
+/// lifetime of the handle.
 pub struct LLHandle<'a, K, T> {
     val: *mut T,
     key: *mut K,
@@ -235,6 +477,13 @@ impl<'a, K, T> Drop for LLHandle<'a, K, T> {
     }
 }
 impl<'a, K, T> LLHandle<'a, K, T> {
+    /// Creates a new handle from raw parts with automatic cleanup.
+    ///
+    /// # Safety
+    ///
+    /// - `ptr` must be a valid pointer to an LLVM resource
+    /// - `dropper` must properly dispose of the resource when called
+    /// - The resource must not be disposed of by any other means
     pub unsafe fn from_raw_parts(ptr: *mut T, dropper: fn(*mut T, K), key: K) -> Self {
         let key = Box::into_raw(Box::new(key));
         M.lock().unwrap().insert(
@@ -259,6 +508,16 @@ impl<'a, K, T> LLHandle<'a, K, T> {
             phantom: PhantomData,
         }
     }
+
+    /// Creates a handle for a "leaked" resource that won't be automatically cleaned up.
+    ///
+    /// Use this for LLVM resources that are owned by another resource
+    /// (e.g., values owned by their parent module).
+    ///
+    /// # Safety
+    ///
+    /// - `ptr` must be a valid pointer to an LLVM resource
+    /// - The resource must outlive the handle
     pub unsafe fn leaked(ptr: *mut T, key: K) -> Self {
         Self {
             val: ptr,
@@ -266,9 +525,13 @@ impl<'a, K, T> LLHandle<'a, K, T> {
             phantom: PhantomData,
         }
     }
+
+    /// Returns the raw pointer to the underlying LLVM resource.
     pub fn ptr(&self) -> *mut T {
         return self.val;
     }
+
+    /// Returns a reference to the key/tag associated with this handle.
     pub fn key(&self) -> &K {
         return unsafe { &*self.key };
     }
@@ -279,7 +542,11 @@ macro_rules! seal {
         $(impl<$($generics),*> private::Sealed for $t{})*
     };
 }
+
+/// Marker type for normal (non-function) LLVM values.
 pub struct Normal;
+
+/// Marker type for function LLVM values.
 pub struct FuncTag;
 macro_rules! impls {
     ($l:ident {}) => {
