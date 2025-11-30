@@ -88,6 +88,26 @@ fn main() -> std::io::Result<()> {
         }
     });
     let contents = quasiquote! {
+        /// Macro for writing version-polymorphic code across LLVM versions.
+        ///
+        /// This macro expands code conditionally based on enabled LLVM version features.
+        /// It takes a block of content and a macro name, then invokes the macro for each
+        /// enabled LLVM version with the appropriate `llvm_sys_*` module identifier.
+        ///
+        /// # Usage
+        ///
+        /// ```ignore
+        /// vers!({/* contents */} my_macro);
+        /// ```
+        ///
+        /// # Expansion
+        ///
+        /// For each enabled LLVM version feature, this expands to:
+        /// ```ignore
+        /// #[cfg(feature = "llvm-sys-190")] my_macro!(llvm_sys_190 { /* contents */ });
+        /// #[cfg(feature = "llvm-sys-180")] my_macro!(llvm_sys_180 { /* contents */ });
+        /// // ... and so on for other enabled versions
+        /// ```
         #[macro_export]
         macro_rules! vers{
             ({$($contents:tt)*} $($m:tt)*) => {
