@@ -192,7 +192,7 @@ macro_rules! default_insts {
                 /// Allocates memory on the stack for a value of the given type.
                 ///
                 /// Returns a pointer to the allocated memory.
-                #[doc = ""]
+                ///
                 /// # Parameters
                 /// - `ty`: The type to allocate space for
                 /// - `name`: Name for the resulting instruction
