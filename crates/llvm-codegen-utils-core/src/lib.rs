@@ -130,8 +130,9 @@ macro_rules! inst {
     (($l2:lifetime)@ [$($a:tt)*] => $($b:tt)*) => {
         inst!(($l2) @ $($a)* => $($b)* => [$($a)*]);
     };
-    (($l2:lifetime)@ $i:ident ($(($($l:lifetime),*) @ $e:ident : $t:ty as |$v:ident|$b:expr),*) =>  $($llvm:ident )? => $stuff:tt) => {
+    (($l2:lifetime)@ $(#[$doc:meta])* $i:ident ($(($($l:lifetime),*) @ $e:ident : $t:ty as |$v:ident|$b:expr),*) =>  $($llvm:ident )? => $stuff:tt) => {
         paste::paste!{
+            $(#[$doc])*
             #[allow(unreachable_code,unused_variables)]
             fn $i<'b,$($($l),*),*,'res:  $($($l +)* )* 'b>(&'b self, $($e: $t),*) -> <Self::ValKind<'a,'a> as ValueKind>::Val<'res,Normal> where $($($l2 : $l),*),*{
 
@@ -165,8 +166,8 @@ macro_rules! inst {
     };
 }
 macro_rules! insts {
-    (($l2:lifetime)@{[$($t0:tt)*], $([$($t:tt)*],)*} => $(<$llvm:ident>)?) => {
-        inst!(($l2)@[$($t0)*] => $($llvm)?);
+    (($l2:lifetime)@{[$(#[$doc:meta])* $i:ident $($t0:tt)*], $([$($t:tt)*],)*} => $(<$llvm:ident>)?) => {
+        inst!(($l2)@[$(#[$doc])* $i $($t0)*] => $($llvm)?);
         insts!(($l2)@{$([$($t)*],)*} => $(<$llvm>)?);
     };
     (($l2:lifetime)@{} => $(<$llvm:ident>)?) => {
@@ -187,24 +188,148 @@ pub enum ICmp {
 macro_rules! default_insts {
     ($l2:lifetime @ $($llvm:ident)?) => {
         insts!(($l2) @ {
-            [Alloca (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [Load2 (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [StructGEP2 (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr(), ('idx) @ idx: &'idx u32 as |x|*x, ('name) @ name : &'name CStr as |x|x.as_ptr())],
-
-            [Store (('val) @ value: <Self::ValKind<'a,'a> as ValueKind>::Val<'val,Normal> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr())],
-            [Add (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [And (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [Neg (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(),  ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [Not (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [TruncOrBitCast (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(),('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [Mul (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [Or (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [Sub (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [Xor (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-            [ICmp (('op) @ op: crate::ICmp as |a|a.into(),('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())],
-
-            [Br (('dest) @ dest: Self::BB<'dest,'a,'a> as |x|x.ptr())],
-            [CondBr (('cond) @ r#if: <Self::ValKind<'a,'a> as ValueKind>::Val<'cond,Normal> as |x|x.ptr(), ('then) @ then: Self::BB<'then,'a,'a> as |x|x.ptr(),('e) @ r#else: Self::BB<'e,'a,'a> as |x|x.ptr())],
+            [
+                /// Allocates memory on the stack for a value of the given type.
+                ///
+                /// Returns a pointer to the allocated memory.
+                #[doc = ""]
+                /// # Parameters
+                /// - `ty`: The type to allocate space for
+                /// - `name`: Name for the resulting instruction
+                Alloca (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Loads a value from memory.
+                ///
+                /// # Parameters
+                /// - `ty`: The type of the value to load
+                /// - `pointer`: Pointer to the memory location to load from
+                /// - `name`: Name for the resulting instruction
+                Load2 (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Gets a pointer to a struct field.
+                ///
+                /// # Parameters
+                /// - `ty`: The type of the struct
+                /// - `pointer`: Pointer to the struct
+                /// - `idx`: Index of the field to get a pointer to
+                /// - `name`: Name for the resulting instruction
+                StructGEP2 (('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr(), ('idx) @ idx: &'idx u32 as |x|*x, ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Stores a value to memory.
+                ///
+                /// # Parameters
+                /// - `value`: The value to store
+                /// - `pointer`: Pointer to the memory location to store to
+                Store (('val) @ value: <Self::ValKind<'a,'a> as ValueKind>::Val<'val,Normal> as |x|x.ptr(), ('ptr) @ pointer: <Self::ValKind<'a,'a> as ValueKind>::Val<'ptr,Normal> as |x|x.ptr())
+            ],
+            [
+                /// Adds two integer values.
+                ///
+                /// # Parameters
+                /// - `lhs`: Left-hand side operand
+                /// - `rhs`: Right-hand side operand
+                /// - `name`: Name for the resulting instruction
+                Add (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Performs bitwise AND on two values.
+                ///
+                /// # Parameters
+                /// - `lhs`: Left-hand side operand
+                /// - `rhs`: Right-hand side operand
+                /// - `name`: Name for the resulting instruction
+                And (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Negates an integer value (two's complement).
+                ///
+                /// # Parameters
+                /// - `lhs`: The value to negate
+                /// - `name`: Name for the resulting instruction
+                Neg (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(),  ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Performs bitwise NOT on a value.
+                ///
+                /// # Parameters
+                /// - `lhs`: The value to invert
+                /// - `name`: Name for the resulting instruction
+                Not (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Truncates or bitcasts a value to a different type.
+                ///
+                /// # Parameters
+                /// - `lhs`: The value to convert
+                /// - `ty`: The target type
+                /// - `name`: Name for the resulting instruction
+                TruncOrBitCast (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(),('ty) @ ty: Self::Ty<'ty> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Multiplies two integer values.
+                ///
+                /// # Parameters
+                /// - `lhs`: Left-hand side operand
+                /// - `rhs`: Right-hand side operand
+                /// - `name`: Name for the resulting instruction
+                Mul (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Performs bitwise OR on two values.
+                ///
+                /// # Parameters
+                /// - `lhs`: Left-hand side operand
+                /// - `rhs`: Right-hand side operand
+                /// - `name`: Name for the resulting instruction
+                Or (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Subtracts two integer values.
+                ///
+                /// # Parameters
+                /// - `lhs`: Left-hand side operand
+                /// - `rhs`: Right-hand side operand
+                /// - `name`: Name for the resulting instruction
+                Sub (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Performs bitwise XOR on two values.
+                ///
+                /// # Parameters
+                /// - `lhs`: Left-hand side operand
+                /// - `rhs`: Right-hand side operand
+                /// - `name`: Name for the resulting instruction
+                Xor (('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Performs an integer comparison.
+                ///
+                /// # Parameters
+                /// - `op`: The comparison predicate (see [`ICmp`])
+                /// - `lhs`: Left-hand side operand
+                /// - `rhs`: Right-hand side operand
+                /// - `name`: Name for the resulting instruction
+                ICmp (('op) @ op: crate::ICmp as |a|a.into(),('lhs) @ lhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'lhs,Normal> as |x|x.ptr(), ('rhs) @ rhs: <Self::ValKind<'a,'a> as ValueKind>::Val<'rhs,Normal> as |x|x.ptr(), ('name) @ name : &'name CStr as |x|x.as_ptr())
+            ],
+            [
+                /// Unconditional branch to a basic block.
+                ///
+                /// # Parameters
+                /// - `dest`: The target basic block
+                Br (('dest) @ dest: Self::BB<'dest,'a,'a> as |x|x.ptr())
+            ],
+            [
+                /// Conditional branch based on an i1 value.
+                ///
+                /// # Parameters
+                /// - `if`: The condition (must be i1 type)
+                /// - `then`: Basic block to branch to if condition is true
+                /// - `else`: Basic block to branch to if condition is false
+                CondBr (('cond) @ r#if: <Self::ValKind<'a,'a> as ValueKind>::Val<'cond,Normal> as |x|x.ptr(), ('then) @ then: Self::BB<'then,'a,'a> as |x|x.ptr(),('e) @ r#else: Self::BB<'e,'a,'a> as |x|x.ptr())
+            ],
         } => $(<$llvm>)?);
     };
 }
