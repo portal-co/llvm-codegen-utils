@@ -127,12 +127,12 @@ macro_rules! rest {
     };
 }
 macro_rules! inst {
-    (($l2:lifetime)@ [$($a:tt)*] => $($b:tt)*) => {
-        inst!(($l2) @ $($a)* => $($b)* => [$($a)*]);
+    ($(#[$($doc:tt)*])*  ($l2:lifetime)@ [$($a:tt)*] => $($b:tt)*) => {
+        inst!($(#[$($doc)*])* ($l2) @  $($a)* => $($b)* => [$($a)*]);
     };
-    (($l2:lifetime)@ $(#[$doc:meta])* $i:ident ($(($($l:lifetime),*) @ $e:ident : $t:ty as |$v:ident|$b:expr),*) =>  $($llvm:ident )? => $stuff:tt) => {
+    ($(#[$($doc:tt)*])*  ($l2:lifetime)@  $i:ident ($(($($l:lifetime),*) @ $e:ident : $t:ty as |$v:ident|$b:expr),*) =>  $($llvm:ident )? => $stuff:tt) => {
         paste::paste!{
-            $(#[$doc])*
+            $(#[$($doc)*])*
             #[allow(unreachable_code,unused_variables)]
             fn $i<'b,$($($l),*),*,'res:  $($($l +)* )* 'b>(&'b self, $($e: $t),*) -> <Self::ValKind<'a,'a> as ValueKind>::Val<'res,Normal> where $($($l2 : $l),*),*{
 
@@ -166,8 +166,8 @@ macro_rules! inst {
     };
 }
 macro_rules! insts {
-    (($l2:lifetime)@{[$(#[$doc:meta])* $i:ident $($t0:tt)*], $([$($t:tt)*],)*} => $(<$llvm:ident>)?) => {
-        inst!(($l2)@[$(#[$doc])* $i $($t0)*] => $($llvm)?);
+    (( $l2:lifetime)@{ [$(#[doc = $doc:expr])* $i:ident $($t0:tt)*], $([$($t:tt)*],)*} => $(<$llvm:ident>)?) => {
+        inst!($(#[doc = $doc])* ($l2)@[$i $($t0)*] => $($llvm)?);
         insts!(($l2)@{$([$($t)*],)*} => $(<$llvm>)?);
     };
     (($l2:lifetime)@{} => $(<$llvm:ident>)?) => {
@@ -729,13 +729,13 @@ macro_rules! impls {
                 ) -> <Self::ValKind<'_,'_> as ValueKind>::Val<'g, Normal> where 'a: 'h + 'i, Self: 'c{
                     let ptr = self.ptr();
                     let resty = resty.ptr();
-                    let Fn = r#fn.ptr();
+                    let r#fn = r#fn.ptr();
                     let mut args = args.map(|a| a.ptr()).collect::<Vec<_>>();
                     let res = unsafe {
                         llvm_sys::core::LLVMBuildCall2(
                             ptr,
                             resty,
-                            Fn,
+                            r#fn,
                             args.as_mut_ptr(),
                             args.len().try_into().unwrap(),
                             name.as_ptr(),
@@ -754,13 +754,13 @@ macro_rules! impls {
                     Self: 'h + 'i{
                         let ptr = self.ptr();
                         let resty = resty.ptr();
-                        let Fn = ptr2.ptr();
+                        let r#fn = ptr2.ptr();
                         let mut args = args.map(|a| a.ptr()).collect::<Vec<_>>();
                         let res = unsafe {
                             llvm_sys::core::LLVMBuildGEP2(
                                 ptr,
                                 resty,
-                                Fn,
+                                r#fn,
                                 args.as_mut_ptr(),
                                 args.len().try_into().unwrap(),
                                 name.as_ptr(),
