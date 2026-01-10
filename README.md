@@ -76,3 +76,12 @@ px-llvm-codegen-utils-core = { version = "0.1", features = ["llvm-sys-190"] }
 ## License
 
 This project is licensed under CC0-1.0.
+
+## Goals
+- [ ] Add project goals
+
+## Progress
+- [ ] Initial setup
+
+---
+*AI assisted*
